@@ -104,6 +104,16 @@ namespace PowerShellTools.LanguageService
         {
             var text = _textView.TextBuffer.CurrentSnapshot.GetText();
 
+            _textView.TextBuffer.PostChanged += (x, y) =>
+            {
+                var currentText = _textView.TextBuffer.CurrentSnapshot.GetText();
+                Token[] currentTokens;
+                ParseError[] currentErrors;
+
+                var currentAst = Parser.ParseInput(currentText, out currentTokens, out currentErrors);
+                _client.UpdateAst(currentAst);
+            };
+
             Token[] tokens;
             ParseError[] errors;
 

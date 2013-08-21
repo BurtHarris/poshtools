@@ -117,6 +117,9 @@ namespace PowerShellTools
             Log.Info (string.Format(CultureInfo.CurrentCulture, "Entering Initialize() of: {0}", this.ToString()));
             base.Initialize();
 
+            var langService = new PowerShellLanguageInfo(this);
+            ((IServiceContainer)this).AddService(langService.GetType(), langService, true);
+
             // Add our command handlers for menu (commands must exist in the .vsct file)
             OleMenuCommandService mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
             if ( null != mcs )

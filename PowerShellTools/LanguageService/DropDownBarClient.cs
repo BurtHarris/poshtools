@@ -55,15 +55,15 @@ namespace PowerShellTools.LanguageService
     class DropDownBarClient : IVsDropdownBarClient
     {
         private Ast _ast;                      // project entry which gets updated with new ASTs for us to inspect.
-        private ReadOnlyCollection<DropDownEntryInfo> _topLevelEntries; // entries for top-level members of the file
-        private ReadOnlyCollection<DropDownEntryInfo> _nestedEntries;   // entries for nested members in the file
+        private ReadOnlyCollection<IDropDownEntryInfo> _topLevelEntries; // entries for top-level members of the file
+        private ReadOnlyCollection<IDropDownEntryInfo> _nestedEntries;   // entries for nested members in the file
         private readonly Dispatcher _dispatcher;                        // current dispatcher so we can get back to our thread
         private readonly IWpfTextView _textView;                        // text view we're drop downs for
         private IVsDropdownBar _dropDownBar;                            // drop down bar - used to refresh when changes occur
         private int _curTopLevelIndex = -1, _curNestedIndex = -1;       // currently selected indices for each bar
 
         private static readonly ImageList _imageList = GetImageList();
-        private static readonly ReadOnlyCollection<DropDownEntryInfo> EmptyEntries = new ReadOnlyCollection<DropDownEntryInfo>(new DropDownEntryInfo[0]);
+        private static readonly ReadOnlyCollection<IDropDownEntryInfo> EmptyEntries = new ReadOnlyCollection<IDropDownEntryInfo>(new DropDownEntryInfo[0]);
 
         private const int TopLevelComboBoxId = 0;
         private const int NestedComboBoxId = 1;
@@ -77,6 +77,7 @@ namespace PowerShellTools.LanguageService
             //_projectEntry.OnNewParseTree += ParserOnNewParseTree;
             _textView = textView;
             _topLevelEntries = _nestedEntries = EmptyEntries;
+
             _dispatcher = Dispatcher.CurrentDispatcher;
             _textView.Caret.PositionChanged += CaretPositionChanged;
         }
@@ -104,11 +105,16 @@ namespace PowerShellTools.LanguageService
             switch (iCombo)
             {
                 case TopLevelComboBoxId:
-                    CalculateTopLevelEntries();
-                    count = (uint)_topLevelEntries.Count;
+                    _topLevelEntries =
+                        new ReadOnlyCollection<IDropDownEntryInfo>(new List<IDropDownEntryInfo>
+                        {
+                            new StaticDropDownEntryInfo("(Script)", (int) ImageListKind.Class)
+                        });
+
+                    count = 1;
                     break;
                 case NestedComboBoxId:
-                    //TODO: CalculateNestedEntries();
+                    CalculateNestedEntries();
                     count = (uint)_nestedEntries.Count;
                     break;
             }
@@ -310,7 +316,7 @@ namespace PowerShellTools.LanguageService
             }
         }
 
-        private void FindActiveTopLevelComboSelection(int newPosition, ReadOnlyCollection<DropDownEntryInfo> topLevel)
+        private void FindActiveTopLevelComboSelection(int newPosition, ReadOnlyCollection<IDropDownEntryInfo> topLevel)
         {
             if (_dropDownBar == null)
             {
@@ -386,7 +392,7 @@ namespace PowerShellTools.LanguageService
             }
         }
 
-        private void FindActiveNestedSelection(int newPosition, ReadOnlyCollection<DropDownEntryInfo> nested)
+        private void FindActiveNestedSelection(int newPosition, ReadOnlyCollection<IDropDownEntryInfo> nested)
         {
             if (_dropDownBar == null)
             {
@@ -437,10 +443,34 @@ namespace PowerShellTools.LanguageService
 
         #region Entry Calculation
 
+        interface IDropDownEntryInfo
+        {
+            string Name { get;  }
+            int ImageListIndex { get; }
+            SourceLocation Start { get; }
+            SourceLocation End { get; }
+        }
+
+        class StaticDropDownEntryInfo : IDropDownEntryInfo
+        {
+            public StaticDropDownEntryInfo(string name, int imageListIndex)
+            {
+                Name = name;
+                ImageListIndex = imageListIndex;
+                Start = new SourceLocation();
+                End = new SourceLocation();
+            }
+
+            public string Name { get; private set; }
+            public int ImageListIndex { get; private set; }
+            public SourceLocation Start { get; private set; }
+            public SourceLocation End { get; private set; }
+        }
+
         /// <summary>
         /// Data structure used for tracking elements of the drop down box in the navigation bar.
         /// </summary>
-        struct DropDownEntryInfo
+        class DropDownEntryInfo : IDropDownEntryInfo
         {
             public readonly StatementAst Body;
 
@@ -617,7 +647,7 @@ namespace PowerShellTools.LanguageService
             ImageList list = new ImageList();
             list.ImageSize = new Size(0x10, 0x10);
             list.TransparentColor = Color.FromArgb(0xff, 0, 0xff);
-            Stream manifestResourceStream = typeof(DropDownBarClient).Assembly.GetManifestResourceStream("Microsoft.Resources.completionset.bmp");
+            Stream manifestResourceStream = typeof(DropDownBarClient).Assembly.GetManifestResourceStream("PowerShellTools.Resources.completionset.bmp");
             list.Images.AddStrip(new Bitmap(manifestResourceStream));
             return list;
         }
@@ -627,9 +657,9 @@ namespace PowerShellTools.LanguageService
         /// in the given suite statement.  Called to calculate both the members of top-level
         /// code and class bodies.
         /// </summary>
-        private static ReadOnlyCollection<DropDownEntryInfo> CalculateEntries(Ast suite)
+        private static ReadOnlyCollection<IDropDownEntryInfo> CalculateEntries(Ast suite)
         {
-            List<DropDownEntryInfo> newEntries = new List<DropDownEntryInfo>();
+            List<IDropDownEntryInfo> newEntries = new List<IDropDownEntryInfo>();
 
             if (suite != null)
             {
@@ -640,23 +670,34 @@ namespace PowerShellTools.LanguageService
             }
 
             newEntries.Sort((x, y) => String.CompareOrdinal(x.Name, y.Name));
-            return new ReadOnlyCollection<DropDownEntryInfo>(newEntries);
+            return new ReadOnlyCollection<IDropDownEntryInfo>(newEntries);
         }
 
         /// <summary>
         /// Calculates the members of the drop down for top-level members.
         /// </summary>
-        private void CalculateTopLevelEntries()
+        private void CalculateNestedEntries()
         {
             if (_ast != null)
             {
-                _topLevelEntries = CalculateEntries(_ast);
+                _nestedEntries = CalculateEntries(_ast);
             }
         }
 
         #endregion
 
         #region Implementation Details
+
+        public void UpdateAst(Ast ast)
+        {
+            _ast = ast;
+            var dropDownBar = _dropDownBar;
+            if (dropDownBar != null)
+            {
+                Action callback = () => { dropDownBar.RefreshCombo(0, 0); };
+                _dispatcher.BeginInvoke(callback, DispatcherPriority.Background);
+            }
+        }
 
         /// <summary>
         /// Wired to parser event for when the parser has completed parsing a new tree and we need
@@ -696,12 +737,12 @@ namespace PowerShellTools.LanguageService
     {
         public static SourceLocation GetStart(this Ast ast)
         {
-            return new SourceLocation(0, ast.Extent.StartLineNumber, ast.Extent.StartColumnNumber);
+            return new SourceLocation(ast.Extent.StartOffset, ast.Extent.StartLineNumber, ast.Extent.StartColumnNumber);
         }
 
         public static SourceLocation GetEnd(this Ast ast)
         {
-            return new SourceLocation(0, ast.Extent.EndLineNumber, ast.Extent.EndColumnNumber);
+            return new SourceLocation(ast.Extent.EndOffset, ast.Extent.EndLineNumber, ast.Extent.EndColumnNumber);
         }
     }
 }

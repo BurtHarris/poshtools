@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System;  
 using System.Collections.Generic;
 using System.Management.Automation;
 using Microsoft.VisualStudio;
@@ -23,7 +23,8 @@ namespace PowerShellTools.DebugEngine
         {
             _node = node;
             _debugger = node.Debugger;
-            _docContext = new ScriptDocumentContext(frame.ScriptName, frame.ScriptLineNumber, 0, frame.ToString());
+            // VS is zero based, PS is 1 based
+            _docContext = new ScriptDocumentContext(frame.ScriptName, frame.ScriptLineNumber - 1, 0, frame.ToString());
             _frame = frame;
         }
 

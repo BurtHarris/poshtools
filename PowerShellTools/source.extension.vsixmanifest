@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="58dce676-42b0-4dd6-9ee4-afbc8e582b8a" Version="0.2" Language="en-US" Publisher="Adam Driscoll" />
+    <Identity Id="58dce676-42b0-4dd6-9ee4-afbc8e582b8a" Version="0.3" Language="en-US" Publisher="Adam Driscoll" />
     <DisplayName>PowerShell Tools for Visual Studio</DisplayName>
     <Description xml:space="preserve">PowerShell integration for Visual Studio</Description>
     <License>License.txt</License>
