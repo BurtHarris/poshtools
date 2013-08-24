@@ -9,12 +9,10 @@ namespace PowerShellTools.Test
     public class VsxHostTest
     {
         private VSXHost _host;
-        private Mock<IOutputWriter> output;
 
         [TestInitialize]
         public void Init()
         {
-            output = new Mock<IOutputWriter>();
             _host = new VSXHost();
         }
 
@@ -24,13 +22,19 @@ namespace PowerShellTools.Test
             var command = new Command("Write-Host");
             command.Parameters.Add("Object", "Test");
 
+            string output = "";
+            _host.HostUi.OutputString = x =>
+            {
+                output += x;
+            };
+
             using (var pipe = _host.Runspace.CreatePipeline())
             {
                 pipe.Commands.Add(command);
                 pipe.Invoke();
             }
 
-            output.Verify(m => m.WriteLine("Test"), Times.AtLeastOnce());
+            Assert.AreEqual("Test\n", output);
         }
     }
 }

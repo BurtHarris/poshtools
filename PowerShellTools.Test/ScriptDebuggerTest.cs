@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Management.Automation.Runspaces;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
 using PowerShellTools.DebugEngine;
 
 namespace PowerShellTools.Test
@@ -60,9 +61,11 @@ namespace PowerShellTools.Test
         [TestMethod]
         public void ShouldSetLineBreakpoint()
         {
+            var engineEvents = new Mock<IEngineEvents>();
+
             var sbps = new List<ScriptBreakpoint>
                            {
-                               new ScriptBreakpoint(null, ".\\TestFile.ps1", 1, 0, null, _runspace)
+                               new ScriptBreakpoint(null, ".\\TestFile.ps1", 1, 0, engineEvents.Object, _runspace)
                            };
 
             _debugger = new ScriptDebugger(_runspace, sbps);
@@ -72,8 +75,12 @@ namespace PowerShellTools.Test
                 pipe.Commands.Add("Get-PSBreakpoint");
                 var breakpoints = pipe.Invoke();
 
+                //Verify the breakpoint was added to the runspace.
                 Assert.AreEqual(1, breakpoints.Count);
             }
+
+            //Verify the callback event was triggered.
+            engineEvents.Verify(m => m.Breakpoint(null, sbps[0]), Times.Once());
         }
 
 

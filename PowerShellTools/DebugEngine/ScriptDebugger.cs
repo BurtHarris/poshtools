@@ -196,6 +196,9 @@ namespace PowerShellTools.DebugEngine
         public void Stop()
         {
             Log.Info("Stop");
+
+            _resumeAction = DebuggerResumeAction.Stop;
+            _pausedEvent.Set();
             _currentPowerShell.Stop();
             DebuggerFinished();
         }

@@ -11,7 +11,7 @@ namespace PowerShellTools.DebugEngine
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof (ScriptBreakpoint));
 
-        private EngineEvents _callback;
+        private IEngineEvents _callback;
         private ScriptProgramNode _node;
         private Runspace _runspace;
         private string _file;
@@ -34,7 +34,7 @@ namespace PowerShellTools.DebugEngine
 
         private int _column;
 
-        public ScriptBreakpoint(ScriptProgramNode node, string file, int line, int column, EngineEvents callback, Runspace runspace)
+        public ScriptBreakpoint(ScriptProgramNode node, string file, int line, int column, IEngineEvents callback, Runspace runspace)
         {
             Log.InfoFormat("ScriptBreakPoint: {0} {1} {2}", file, line, column);
 

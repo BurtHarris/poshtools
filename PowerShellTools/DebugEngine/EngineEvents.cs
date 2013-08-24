@@ -7,10 +7,36 @@ using Microsoft.VisualStudio.Debugger.Interop;
 
 namespace PowerShellTools.DebugEngine
 {
+    public interface IEngineEvents
+    {
+        /// <summary>
+        /// Fires the event notifying the SDM that the debug engine has loaded.
+        /// </summary>
+        void EngineCreated();
+
+        void RunspaceRequest();
+        void EngineLoaded();
+
+        /// <summary>
+        /// Fires the event notifying the SDM that a program was created
+        /// </summary>
+        void ProgramCreated(IDebugProgram2 program);
+
+        void ProcessCreated(IDebugProcess2 process);
+        void ProcessDestroyed();
+        void DebugEntryPoint();
+        void ProgramDestroyed(IDebugProgram2 program);
+        void OutputString(string str);
+        void Break(ScriptProgramNode program);
+        void Exception(ScriptProgramNode program);
+        void Breakpoint(ScriptProgramNode program, ScriptBreakpoint breakpoint);
+        void BreakpointHit(ScriptBreakpoint breakpoint, ScriptProgramNode node);
+    }
+
     /// <summary>
     /// Fires events triggered by the debug engine.
     /// </summary>
-    public class EngineEvents
+    public class EngineEvents : IEngineEvents
     {
         #region Fields
         private readonly IDebugEngine2 _engine;
